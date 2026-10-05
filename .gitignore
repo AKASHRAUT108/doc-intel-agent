@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Env
+.env
+.env.local
+
+# Models & data
+models/*
+!models/.gitkeep
+data/raw/
+data/processed/
+*.pt
+*.bin
+*.safetensors
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Logs
+*.log
+logs/

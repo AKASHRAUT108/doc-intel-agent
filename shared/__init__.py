@@ -1,0 +1,58 @@
+"""Shared library used by all DocIntel services."""
+from shared.config import Settings, get_settings
+from shared.errors import (
+    AgentError,
+    ComplianceError,
+    DocIntelError,
+    DocumentParseError,
+    LLMError,
+    NotFoundError,
+    OCRError,
+    UnsupportedFormatError,
+)
+from shared.logging import get_logger, setup_logging
+from shared.schemas import (
+    AgentStep,
+    AgentTrace,
+    Anomaly,
+    BBox,
+    ComplianceVerdict,
+    Entity,
+    FinalReport,
+    LayoutRegion,
+    NERResult,
+    OCRResult,
+    OCRWord,
+    RegionLabel,
+    Relation,
+    RetrievedChunk,
+)
+
+__all__ = [
+    "Settings",
+    "get_settings",
+    "DocIntelError",
+    "DocumentParseError",
+    "UnsupportedFormatError",
+    "OCRError",
+    "ComplianceError",
+    "AgentError",
+    "LLMError",
+    "NotFoundError",
+    "get_logger",
+    "setup_logging",
+    "OCRResult",
+    "OCRWord",
+    "LayoutRegion",
+    "BBox",
+    "RegionLabel",
+    "Entity",
+    "Relation",
+    "NERResult",
+    "RetrievedChunk",
+    "ComplianceVerdict",
+    "Anomaly",
+    "AgentStep",
+    "AgentTrace",
+    "FinalReport",
+]

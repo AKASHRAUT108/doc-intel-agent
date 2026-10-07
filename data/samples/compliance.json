@@ -1,0 +1,34 @@
+[
+  {
+    "text": "All invoices over $10,000 require a purchase order number before payment can be processed.",
+    "metadata": {"rule_id": "POL-101", "category": "procurement", "severity": "high"}
+  },
+  {
+    "text": "Vendors must be on the approved vendor list before any payment is issued.",
+    "metadata": {"rule_id": "POL-205", "category": "procurement", "severity": "high"}
+  },
+  {
+    "text": "Invoice amounts more than 2x the vendor's historical average require manager approval.",
+    "metadata": {"rule_id": "POL-310", "category": "procurement", "severity": "medium"}
+  },
+  {
+    "text": "Data processing agreements must include GDPR Article 28 clauses when handling EU personal data.",
+    "metadata": {"rule_id": "GDPR-28", "category": "compliance", "severity": "high"}
+  },
+  {
+    "text": "Personal data transfers outside the EU require Standard Contractual Clauses or an adequacy decision.",
+    "metadata": {"rule_id": "GDPR-46", "category": "compliance", "severity": "high"}
+  },
+  {
+    "text": "Contracts with value exceeding $100,000 must be reviewed by the legal department.",
+    "metadata": {"rule_id": "LEGAL-100", "category": "legal", "severity": "medium"}
+  },
+  {
+    "text": "All financial transactions must be logged with timestamp, amount, currency, and counterparty.",
+    "metadata": {"rule_id": "FIN-001", "category": "audit", "severity": "low"}
+  },
+  {
+    "text": "Signatures on contracts must be dated within 30 days of the contract effective date.",
+    "metadata": {"rule_id": "LEGAL-200", "category": "legal", "severity": "medium"}
+  }
+]

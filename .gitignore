@@ -33,3 +33,9 @@ data/processed/
 # Logs
 *.log
 logs/
+
+
+# Model caches
+.easyocr/
+.cache/
+hf_cache/

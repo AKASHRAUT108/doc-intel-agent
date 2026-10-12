@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 
-from shared.errors import DocumentParseError
+from shared.errors import DocIntelError, DocumentParseError, UnsupportedFormatError
 from shared.schemas import OCRResult
 
 from .extractor import extract
@@ -24,9 +24,13 @@ def process_document(data: bytes, content_type: str) -> OCRResult:
     if not data:
         raise DocumentParseError("Empty file")
 
+    # Pass through our known domain errors (UnsupportedFormatError, etc.)
+    # Only wrap truly unexpected exceptions.
     try:
         result = extract(data, content_type)
-    except DocumentParseError:
+    except (UnsupportedFormatError, DocumentParseError):
+        raise
+    except DocIntelError:
         raise
     except Exception as e:
         logger.exception("failed to process document")

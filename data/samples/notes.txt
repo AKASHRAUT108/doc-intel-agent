@@ -1,0 +1,17 @@
+Project Notes — October 2026
+
+Goal: Build a Document Intelligence Agent for capstone project.
+
+Key requirements:
+- Support PDF, DOCX, XLSX, TXT formats
+- Extract entities: dates, amounts, parties
+- Generate summaries using Gemini
+- Produce copy-paste prompts for LLMs
+
+Timeline:
+- Week 1: CV + NLP services
+- Week 2: RAG + Summary
+- Week 3: UI + Deployment
+
+Contact: akash@example.com
+Deadline: November 30, 2026

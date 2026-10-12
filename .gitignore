@@ -9,6 +9,12 @@ venv/
 htmlcov/
 .coverage
 
+# Virtualenv — CAREFUL: .vevn (typo) AND .venv
+.venv/
+.vevn/
+venv/
+env/
+
 # Env
 .env
 .env.local

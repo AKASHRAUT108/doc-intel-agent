@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from shared.logging import get_logger, setup_logging
 from shared.schemas import RetrievedChunk
@@ -15,14 +15,14 @@ logger = get_logger("rag_service")
 
 app = FastAPI(
     title="RAG Service",
-    description="Retrieve compliance rules and policies.",
+    description="Retrieve compliance rules and policies by semantic similarity.",
     version="0.1.0",
 )
 
 
 class QueryIn(BaseModel):
-    query: str
-    top_k: int = 5
+    query: str = Field(min_length=1)
+    top_k: int = Field(default=5, ge=1, le=50)
 
 
 class IndexIn(BaseModel):
@@ -31,14 +31,18 @@ class IndexIn(BaseModel):
 
 @app.on_event("startup")
 def _load_default_corpus() -> None:
-    """Load compliance corpus at startup."""
+    """Load compliance corpus when the app starts."""
     n = load_corpus()
     logger.info("startup: loaded %d rules", n)
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "rag_service", "indexed": get_store().size()}
+    return {
+        "status": "ok",
+        "service": "rag_service",
+        "indexed": get_store().size(),
+    }
 
 
 @app.post("/retrieve", response_model=list[RetrievedChunk])

@@ -19,5 +19,9 @@ def load_corpus(path: Path = DEFAULT_CORPUS) -> int:
         return 0
 
     chunks = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(chunks, list):
+        logger.error("corpus must be a JSON list, got %s", type(chunks).__name__)
+        return 0
+
     store = get_store()
     return store.add_many(chunks)

@@ -1,7 +1,9 @@
 """FastAPI entry point for the API Gateway."""
 from __future__ import annotations
 
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+import asyncio
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from shared.logging import get_logger, setup_logging
 from shared.schemas import JobRecord, PromptMode
@@ -30,11 +32,15 @@ def health() -> dict:
 
 @app.post("/upload", response_model=JobRecord)
 async def upload(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     mode: PromptMode = PromptMode.SUMMARY,
 ) -> JobRecord:
-    """Accept a file, enqueue it for processing, return the job record."""
+    """Accept a file, enqueue it for processing, return the job record.
+
+    The pipeline runs as an independent asyncio task. This endpoint
+    returns in milliseconds so the client isn't blocked by the
+    (potentially slow) downstream pipeline.
+    """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
 
@@ -53,14 +59,16 @@ async def upload(
 
     record = create_job(filename=file.filename, content_type=content_type)
 
-    # Launch pipeline in background
-    background_tasks.add_task(
-        run_pipeline,
-        job_id=record.job_id,
-        file_bytes=contents,
-        filename=file.filename,
-        content_type=content_type,
-        mode=mode,
+    # Fire-and-forget background task.
+    # create_task schedules it on the event loop independently of this request.
+    asyncio.create_task(
+        run_pipeline(
+            job_id=record.job_id,
+            file_bytes=contents,
+            filename=file.filename,
+            content_type=content_type,
+            mode=mode,
+        )
     )
 
     return record

@@ -1,6 +1,7 @@
 """Job orchestrator — runs the full pipeline for a job."""
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from shared.schemas import PromptMode
@@ -24,7 +25,11 @@ async def run_pipeline(
     content_type: str,
     mode: PromptMode = PromptMode.SUMMARY,
 ) -> None:
-    """Execute the full pipeline for a job. Never raises."""
+    """Execute the full pipeline for a job. Never raises.
+
+    All blocking HTTP calls are wrapped in `asyncio.to_thread` so they
+    don't block the event loop.
+    """
     logger.info("starting job %s (mode=%s)", job_id, mode.value)
 
     rec = mark_processing(job_id)
@@ -35,7 +40,9 @@ async def run_pipeline(
     try:
         # 1. CV — extract text
         logger.info("[%s] step 1/4: CV service", job_id)
-        ocr = call_cv_service(file_bytes, filename, content_type)
+        ocr = await asyncio.to_thread(
+            call_cv_service, file_bytes, filename, content_type
+        )
         rec.ocr = ocr
         save_job(rec)
 
@@ -43,29 +50,31 @@ async def run_pipeline(
         if not text.strip():
             raise RuntimeError("No text extracted from document")
 
-        # 2. NLP — entities
+        # 2. NLP — entities (non-fatal)
         logger.info("[%s] step 2/4: NLP service", job_id)
         try:
-            entities = call_nlp_service(text)
+            entities = await asyncio.to_thread(call_nlp_service, text)
             rec.entities = entities
             save_job(rec)
         except ServiceError as e:
             logger.warning("[%s] NLP failed (continuing): %s", job_id, e)
 
-        # 3. Summary — LLM
+        # 3. Summary — LLM (non-fatal)
         logger.info("[%s] step 3/4: Summary service", job_id)
         summary = None
         try:
-            summary = call_summary_service(text)
+            summary = await asyncio.to_thread(call_summary_service, text)
             rec.summary = summary
             save_job(rec)
         except ServiceError as e:
             logger.warning("[%s] Summary failed (continuing): %s", job_id, e)
 
-        # 4. Prompt — LLM
+        # 4. Prompt — LLM (non-fatal)
         logger.info("[%s] step 4/4: Prompt service", job_id)
         try:
-            prompt = call_prompt_service(text, mode=mode, summary=summary)
+            prompt = await asyncio.to_thread(
+                call_prompt_service, text, mode, summary
+            )
             rec.prompt = prompt
             save_job(rec)
         except ServiceError as e:

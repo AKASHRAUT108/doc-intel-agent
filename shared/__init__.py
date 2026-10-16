@@ -29,6 +29,8 @@ from shared.schemas import (
     RetrievedChunk,
     KeyFact,
     SummaryResult,
+    PromptMode,
+    PromptResult,
 )
 
 __all__ = [
@@ -63,4 +65,6 @@ __all__ = [
     "get_llm",
     "KeyFact",
     "SummaryResult",
+    "PromptMode",
+    "PromptResult",
 ]

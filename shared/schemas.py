@@ -132,3 +132,25 @@ class SummaryResult(BaseModel):
     model: str = ""
     latency_ms: int = 0
     mocked: bool = False
+
+# -----------------------------------------------------------------------------
+# Prompt Generator Service
+# -----------------------------------------------------------------------------
+
+class PromptMode(str, Enum):
+    """User-selectable prompt generation modes."""
+    SUMMARY = "summary"
+    ANALYZE = "analyze"
+    ACTION = "action"
+    QUIZ = "quiz"
+
+
+class PromptResult(BaseModel):
+    """Generated prompt ready to paste into an LLM."""
+    mode: PromptMode
+    prompt: str
+    suggested_followups: list[str] = []
+    document_type: str = "unknown"
+    model: str = ""
+    latency_ms: int = 0
+    mocked: bool = False

@@ -27,6 +27,8 @@ from shared.schemas import (
     RegionLabel,
     Relation,
     RetrievedChunk,
+    KeyFact,
+    SummaryResult,
 )
 
 __all__ = [
@@ -59,4 +61,6 @@ __all__ = [
     "GeminiClient",
     "LLMResult",
     "get_llm",
+    "KeyFact",
+    "SummaryResult",
 ]

@@ -108,3 +108,27 @@ class FinalReport(BaseModel):
     anomalies: list[Anomaly]
     trace: AgentTrace
     auto_filled: dict[str, Any] = {}
+
+
+# -----------------------------------------------------------------------------
+# Summary Service
+# -----------------------------------------------------------------------------
+
+class KeyFact(BaseModel):
+    """A key fact extracted from a document (label/value pair)."""
+    label: str
+    value: str
+
+
+class SummaryResult(BaseModel):
+    """Structured summary produced by the Summary Service."""
+    summary: str
+    document_type: str = "unknown"
+    key_facts: list[KeyFact] = []
+    action_items: list[str] = []
+    risk_flags: list[str] = []
+    tldr: str = ""
+    word_count: int = 0
+    model: str = ""
+    latency_ms: int = 0
+    mocked: bool = False

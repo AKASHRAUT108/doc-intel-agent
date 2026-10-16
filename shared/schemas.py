@@ -154,3 +154,30 @@ class PromptResult(BaseModel):
     model: str = ""
     latency_ms: int = 0
     mocked: bool = False
+
+# -----------------------------------------------------------------------------
+# API Gateway — Jobs
+# -----------------------------------------------------------------------------
+
+class JobStatus(str, Enum):
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    DONE = "done"
+    FAILED = "failed"
+
+
+class JobRecord(BaseModel):
+    """Represents a processing job."""
+    job_id: str
+    filename: str
+    content_type: str
+    status: JobStatus = JobStatus.QUEUED
+    created_at: str = ""
+    updated_at: str = ""
+    error: str | None = None
+
+    # Filled in progressively as the pipeline runs
+    ocr: OCRResult | None = None
+    entities: NERResult | None = None
+    summary: SummaryResult | None = None
+    prompt: PromptResult | None = None

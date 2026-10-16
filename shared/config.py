@@ -28,6 +28,16 @@ class Settings(BaseSettings):
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"
 
+        # Service URLs (for API Gateway to call others)
+    cv_service_url: str = "http://localhost:8001"
+    nlp_service_url: str = "http://localhost:8002"
+    rag_service_url: str = "http://localhost:8003"
+    summary_service_url: str = "http://localhost:8005"
+    prompt_service_url: str = "http://localhost:8006"
+
+    # Job storage
+    jobs_dir: str = "data/jobs"
+
 
 @lru_cache
 def get_settings() -> Settings:

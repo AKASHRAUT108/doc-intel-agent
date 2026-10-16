@@ -31,6 +31,8 @@ from shared.schemas import (
     SummaryResult,
     PromptMode,
     PromptResult,
+    JobRecord,
+    JobStatus,
 )
 
 __all__ = [
@@ -67,4 +69,6 @@ __all__ = [
     "SummaryResult",
     "PromptMode",
     "PromptResult",
+    "JobRecord",
+    "JobStatus",
 ]

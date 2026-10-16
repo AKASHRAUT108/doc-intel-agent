@@ -73,7 +73,7 @@ def main() -> None:
     print(f"  status: {job['status']}")
 
     print("\n=== 3. Poll status ===")
-    final = wait_for_status(job_id)
+    wait_for_status(job_id)
 
     print("\n=== 4. Fetch result ===")
     r = httpx.get(f"{API_URL}/result/{job_id}", timeout=30)

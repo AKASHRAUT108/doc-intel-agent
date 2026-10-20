@@ -142,7 +142,7 @@ if st.session_state.job_id:
     status_text = st.empty()
 
     # Poll until done or failed
-    max_wait = 180
+    max_wait = 600
     start = time.time()
     result = None
 
@@ -161,8 +161,36 @@ if st.session_state.job_id:
             "failed": 1.0,
         }
         progress_bar.progress(progress_map.get(s, 0.05))
-        status_text.info(f"Status: **{s}**")
 
+                # Detailed status with step context.
+        # JobRecord only updates AFTER each step completes, so during
+        # step 1 (OCR) all result fields are None. Default to step 1
+        # while processing and refine as fields appear.
+        if s == "queued":
+            status_text.info("⏸ **Queued** — waiting to start")
+        elif s == "processing":
+            ocr_done = status.get("ocr") is not None
+            nlp_done = status.get("entities") is not None
+            summary_done = status.get("summary") is not None
+            prompt_done = status.get("prompt") is not None
+
+            if prompt_done:
+                status_text.info("✨ **Finishing up** — almost done")
+            elif summary_done:
+                status_text.info("✨ **Step 4/4** — Generating prompt")
+            elif nlp_done:
+                status_text.info("📝 **Step 3/4** — Generating summary")
+            elif ocr_done:
+                status_text.info("🧠 **Step 2/4** — Extracting entities")
+            else:
+                status_text.info(
+                    "👁 **Step 1/4** — Extracting text "
+                    "(fast for digital PDFs, slow for scanned)"
+                )
+        elif s == "done":
+            status_text.success("✅ **Done** — results below")
+        elif s == "failed":
+            status_text.error(f"❌ **Failed** — {status.get('error', 'unknown')}")
         if s in ("done", "failed"):
             try:
                 result = client.result(job_id)
@@ -174,8 +202,12 @@ if st.session_state.job_id:
         time.sleep(2)
 
     if time.time() - start >= max_wait:
-        status_text.warning("Timed out waiting for job.")
-
+        elapsed = int(time.time() - start)
+        status_text.warning(
+            f"⏱ Still processing after {elapsed}s. "
+            "Scanned PDFs can take several minutes. "
+            "Check the 'Recent Jobs' sidebar to see the result when done."
+        )
 # -----------------------------------------------------------------------------
 # Result rendering
 # -----------------------------------------------------------------------------

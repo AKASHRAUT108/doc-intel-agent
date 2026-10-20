@@ -21,7 +21,7 @@ from shared.schemas import (
 logger = logging.getLogger(__name__)
 
 # Timeouts
-OCR_TIMEOUT = 120.0       # OCR can take a while on large scans
+OCR_TIMEOUT = 600.0       # OCR can take a while on large scans
 LLM_TIMEOUT = 90.0        # LLM calls can take 10-30s
 DEFAULT_TIMEOUT = 30.0
 
@@ -45,11 +45,16 @@ def call_cv_service(file_bytes: bytes, filename: str, content_type: str) -> OCRR
         r = httpx.post(url, files=files, timeout=OCR_TIMEOUT)
         r.raise_for_status()
         return OCRResult.model_validate(r.json())
+    except httpx.ReadTimeout as e:
+        logger.exception("CV service timeout")
+        raise ServiceError(
+            f"OCR timed out after {OCR_TIMEOUT:.0f}s. "
+            "This usually means the PDF is scanned (image-based). "
+            "Try a digital/text PDF instead."
+        ) from e
     except httpx.HTTPError as e:
         logger.exception("CV service call failed")
         raise ServiceError(f"CV service error: {e}") from e
-
-
 # -----------------------------------------------------------------------------
 # NLP Service
 # -----------------------------------------------------------------------------

@@ -34,11 +34,57 @@ TEXT_MIMES = {
 SUPPORTED = PDF_MIMES | IMAGE_MIMES | DOCX_MIMES | XLSX_MIMES | TEXT_MIMES
 
 
-def extract(data: bytes, content_type: str) -> OCRResult:
-    """Extract text from any supported file type."""
-    if content_type not in SUPPORTED:
-        raise UnsupportedFormatError(f"Unsupported content type: {content_type}")
+def extract(
+    data: bytes,
+    content_type: str,
+    filename: str | None = None,
+) -> OCRResult:
+    """Extract text from any supported file type.
 
+    Handles edge cases:
+    - application/octet-stream (browsers sometimes send this)
+    - application/x-www-form-urlencoded (legacy uploads)
+    - No content_type at all
+    - Content type with charset suffix (e.g. text/plain; charset=utf-8)
+
+    Falls back to filename-based detection when MIME is unreliable.
+    """
+    # Normalize content_type (strip charset, whitespace, lowercase)
+    if content_type:
+        content_type = content_type.split(";")[0].strip().lower()
+
+    # If content type is empty or generic, try filename
+    if not content_type or content_type in (
+        "application/octet-stream",
+        "application/x-www-form-urlencoded",
+        "binary/octet-stream",
+    ):
+        if filename:
+            guessed = guess_mime_from_filename(filename)
+            if guessed:
+                logger.info(
+                    "content_type %r generic/empty, guessed %r from %r",
+                    content_type, guessed, filename,
+                )
+                content_type = guessed
+
+    # Still unsupported? Try filename anyway
+    if content_type not in SUPPORTED and filename:
+        guessed = guess_mime_from_filename(filename)
+        if guessed and guessed in SUPPORTED:
+            logger.info(
+                "content_type %r unsupported, forced %r from %r",
+                content_type, guessed, filename,
+            )
+            content_type = guessed
+
+    if content_type not in SUPPORTED:
+        raise UnsupportedFormatError(
+            f"Unsupported content type: {content_type} "
+            f"(filename: {filename})"
+        )
+
+    # Route to correct handler
     if content_type in PDF_MIMES:
         return _handle_pdf(data)
     if content_type in IMAGE_MIMES:
@@ -51,7 +97,6 @@ def extract(data: bytes, content_type: str) -> OCRResult:
         return extract_text(data)
 
     raise UnsupportedFormatError(f"No handler for: {content_type}")
-
 
 def _handle_pdf(data: bytes) -> OCRResult:
     """Detect digital vs scanned PDF; route accordingly."""

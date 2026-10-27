@@ -5,9 +5,9 @@ from pathlib import Path
 # Ensure project root is on sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from services.cv_service.app.pdf import load_image
-from services.cv_service.app.ocr import run_ocr
 from services.cv_service.app.layout import analyze_layout
+from services.cv_service.app.ocr import run_ocr
+from services.cv_service.app.pdf import load_image
 from services.cv_service.app.pipeline import process_document
 
 print("=== Loading image ===")

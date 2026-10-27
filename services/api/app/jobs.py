@@ -53,24 +53,65 @@ def create_job(filename: str, content_type: str) -> JobRecord:
 
 
 def get_job(job_id: str) -> JobRecord | None:
-    """Load a job by ID. Returns None if not found."""
+    """Load a job by ID. Returns None if not found or corrupted."""
     p = _path(job_id)
     if not p.exists():
         return None
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
         return JobRecord.model_validate(data)
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning("job %s corrupted (will skip): %s", job_id, e)
+        return None
     except Exception:
         logger.exception("failed to load job %s", job_id)
         return None
 
-
 def save_job(record: JobRecord) -> None:
-    """Persist a job record to disk."""
-    record.updated_at = _now()
-    p = _path(record.job_id)
-    p.write_text(record.model_dump_json(indent=2), encoding="utf-8")
+    """Persist a job record to disk atomically.
 
+    Uses os.replace which is atomic on both POSIX and Windows.
+    On Windows, we may get AccessDenied if another process holds the
+    file open — retry a few times before giving up.
+    """
+    import os
+    import tempfile
+    import time
+
+    record.updated_at = _now()
+    final_path = _path(record.job_id)
+    data = record.model_dump_json(indent=2)
+
+    fd, tmp_path = tempfile.mkstemp(
+        dir=str(final_path.parent), suffix=".json.tmp", prefix="job_"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+
+        # Retry rename up to 5 times (Windows file lock tolerance)
+        last_error: Exception | None = None
+        for attempt in range(5):
+            try:
+                os.replace(tmp_path, final_path)
+                return
+            except PermissionError as e:
+                last_error = e
+                time.sleep(0.1 * (attempt + 1))
+
+        # Final attempt — if it still fails, raise
+        os.replace(tmp_path, final_path)
+        if last_error:
+            logger.warning("save_job succeeded after retries: %s", last_error)
+    except Exception:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+        raise
 
 def mark_processing(job_id: str) -> JobRecord | None:
     rec = get_job(job_id)

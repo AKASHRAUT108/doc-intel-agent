@@ -10,7 +10,7 @@ if (-not (Test-Path $root)) {
 Set-Location $root
 
 $services = @(
-    @{ name = "API Gateway";     port = 8000; module = "services.api.app.main:app" },
+    @{ name = "API Gateway";     port = 8010; module = "services.api.app.main:app" },
     @{ name = "CV Service";      port = 8001; module = "services.cv_service.app.main:app" },
     @{ name = "NLP Service";     port = 8002; module = "services.nlp_service.app.main:app" },
     @{ name = "RAG Service";     port = 8003; module = "services.rag_service.app.main:app" },

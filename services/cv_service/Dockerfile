@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# System deps for pdf2image (Poppler) and EasyOCR's OpenCV
+# System deps for PDF (poppler), EasyOCR (OpenCV needs libGL)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     libgl1 \
@@ -12,12 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install CPU-only PyTorch first (avoids 2.5GB of CUDA downloads)
+# CPU-only PyTorch first (avoids 2.5GB CUDA download)
 RUN pip install --no-cache-dir \
     torch==2.4.1 torchvision==0.19.1 \
     --index-url https://download.pytorch.org/whl/cpu
 
-# Now install other deps
+# Install remaining deps
 COPY requirements.txt .
 COPY services/cv_service/requirements.txt services/cv_service/requirements.txt
 RUN pip install --no-cache-dir -r services/cv_service/requirements.txt

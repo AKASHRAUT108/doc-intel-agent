@@ -44,7 +44,7 @@ class GeminiClient:
     """
 
     MAX_RETRIES = 3
-    RETRY_DELAY_SECONDS = 2.0
+    RETRY_DELAY_SECONDS = 20.0
 
     def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
         settings = get_settings()
@@ -172,11 +172,14 @@ class GeminiClient:
                     "gemini call failed (attempt %d/%d): %s",
                     attempt,
                     self.MAX_RETRIES,
-                    e,
+                    str(e)[:200],
                 )
                 if attempt < self.MAX_RETRIES:
-                    time.sleep(self.RETRY_DELAY_SECONDS)
-
+                    # If rate-limited, wait longer
+                    delay = self.RETRY_DELAY_SECONDS
+                    if "429" in str(e) or "quota" in str(e).lower():
+                        delay = 30.0
+                    time.sleep(delay)
         logger.error("gemini call exhausted retries: %s", last_error)
         raise RuntimeError(f"Gemini call failed after {self.MAX_RETRIES} attempts") from last_error
 
@@ -223,11 +226,13 @@ def _response_text(response: Any) -> str:
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:
-    """Extract a JSON object from a possibly-fenced LLM response."""
-    if not text:
+    """Extract a JSON object from a possibly-fenced or truncated LLM response."""
+    if not text or not text.strip():
         return None
 
-    # Try direct
+    text = text.strip()
+
+    # Try direct parse
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -241,12 +246,33 @@ def _extract_json(text: str) -> dict[str, Any] | None:
         except json.JSONDecodeError:
             pass
 
-    # Try extracting first {...}
+    # Try finding the outermost {...} and parse
     start = text.find("{")
     end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
+    if start != -1 and end > start:
+        candidate = text[start : end + 1]
         try:
-            return json.loads(text[start : end + 1])
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
+    # Truncated JSON — try to close it
+    if start != -1:
+        candidate = text[start:]
+        # Count unclosed braces/brackets
+        opens = candidate.count("{") - candidate.count("}")
+        brackets = candidate.count("[") - candidate.count("]")
+
+        # If it ends mid-string, close the string
+        if candidate.count('"') % 2 == 1:
+            candidate += '"'
+
+        # Close unclosed brackets and braces in reverse order
+        candidate += "]" * brackets
+        candidate += "}" * opens
+
+        try:
+            return json.loads(candidate)
         except json.JSONDecodeError:
             pass
 

@@ -17,8 +17,15 @@ def _get_reader():
     import easyocr
 
     logger.info("initializing EasyOCR (first call downloads models)")
-    return easyocr.Reader(["en"], gpu=False, verbose=False)
-
+    # Disable unnecessary detection steps for speed
+    # batch_size and workers optimize CPU usage
+    return easyocr.Reader(
+        ["en"],
+        gpu=False,
+        verbose=False,
+        model_storage_directory=None,  # use default
+        download_enabled=True,
+    )
 
 def run_ocr(image: Image.Image) -> tuple[str, list[OCRWord]]:
     """Run OCR on a PIL image, return (full_text, words)."""
@@ -28,10 +35,27 @@ def run_ocr(image: Image.Image) -> tuple[str, list[OCRWord]]:
         logger.exception("Failed to initialize EasyOCR reader")
         return "", []
 
+    # Upscale small images for better OCR accuracy
+    w, h = image.size
+    if w < 500 or h < 500:
+        scale = max(500 / w, 500 / h)
+        new_size = (int(w * scale), int(h * scale))
+        logger.info("upscaling small image from %dx%d to %dx%d", w, h, *new_size)
+        image = image.resize(new_size, Image.LANCZOS)
+
     arr = np.array(image)
 
     try:
-        raw = reader.readtext(arr, detail=1, paragraph=False)
+        # Use paragraph=False for speed; combine into lines afterward
+        raw = reader.readtext(
+            arr,
+            detail=1,
+            paragraph=False,
+            decoder="greedy",  # faster than beam search
+            beamWidth=5,
+            batch_size=1,
+            workers=0,
+        )
     except Exception:
         logger.exception("OCR failed")
         return "", []

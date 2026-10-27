@@ -86,7 +86,7 @@ def _suggest_followups(
         data, llm_result = llm.generate_json(
             prompt=prompt,
             system=FOLLOWUP_SYSTEM,
-            max_tokens=300,
+            max_tokens=800,
             temperature=0.7,
         )
         followups = [

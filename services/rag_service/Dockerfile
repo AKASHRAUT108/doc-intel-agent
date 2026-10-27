@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r services/rag_service/requirements.txt
 
 COPY shared shared
 COPY services/rag_service services/rag_service
-COPY data/samples data/samples
+COPY data/samples/compliance.json data/samples/compliance.json
 
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1

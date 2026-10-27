@@ -23,19 +23,23 @@ def summarize_document(text: str) -> SummaryResult:
     prompt = build_summary_prompt(text)
     llm = get_llm()
 
-    try:
-        data, llm_result = llm.generate_json(
-            prompt=prompt,
-            system=SYSTEM_PROMPT,
-            max_tokens=1024,
-            temperature=0.2,
-        )
-    except Exception:
-        logger.exception("LLM call failed")
-        return _fallback_summary(text, reason="LLM call failed")
+    # Try twice with the LLM (some calls succeed on retry)
+    last_error = None
+    for attempt in range(2):
+        try:
+            data, llm_result = llm.generate_json(
+                prompt=prompt,
+                system=SYSTEM_PROMPT,
+                max_tokens=2048,
+                temperature=0.2 + (attempt * 0.1),  # slight variation
+            )
+            return _build_result(data, text, llm_result)
+        except Exception as e:
+            last_error = e
+            logger.warning("LLM attempt %d failed: %s", attempt + 1, e)
 
-    return _build_result(data, text, llm_result)
-
+    logger.error("LLM failed twice — using fallback")
+    return _fallback_summary(text, reason=f"LLM call failed: {last_error}")
 
 def _build_result(data: dict, text: str, llm_result) -> SummaryResult:
     """Convert raw LLM JSON to a validated SummaryResult."""

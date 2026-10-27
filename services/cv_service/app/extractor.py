@@ -137,3 +137,31 @@ def _ocr_images(images: list) -> OCRResult:
         words=all_words,
         regions=all_regions,
     )
+
+# -----------------------------------------------------------------------------
+# MIME inference from filename extension
+# -----------------------------------------------------------------------------
+
+EXTENSION_TO_MIME: dict[str, str] = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".tiff": "image/tiff",
+    ".tif": "image/tiff",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".doc": "application/msword",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".xls": "application/vnd.ms-excel",
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".csv": "text/csv",
+}
+
+
+def guess_mime_from_filename(filename: str) -> str | None:
+    """Guess MIME type from file extension. Returns None if unknown."""
+    import os
+
+    ext = os.path.splitext(filename)[1].lower()
+    return EXTENSION_TO_MIME.get(ext)

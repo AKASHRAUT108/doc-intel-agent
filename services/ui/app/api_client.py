@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import logging
+import os
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_API_URL = "http://localhost:8000"
+# Inside Docker: API_URL=http://api:8000
+# Locally: defaults to http://localhost:8000
+DEFAULT_API_URL = os.getenv("API_URL", "http://localhost:8010")
 
 
 class APIClient:

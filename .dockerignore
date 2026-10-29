@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.vevn/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Git & GitHub
+.git/
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Env — NEVER bake secrets into images
+.env
+.env.local
+.env.*.local
+
+# Data & models (mounted at runtime instead)
+data/raw/
+data/processed/
+models/
+*.pt
+*.bin
+*.safetensors
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+logs/

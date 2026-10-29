@@ -1,107 +1,69 @@
-"""FastAPI entry point for the API Gateway."""
-from __future__ import annotations
+"""Simple Streamlit UI - Upload, Summarize, Prompt."""
+import sys
+from pathlib import Path
+import httpx
+import streamlit as st
 
-import asyncio
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+st.set_page_config(page_title="Doc AI", page_icon="📄", layout="wide")
 
-from shared.logging import get_logger, setup_logging
-from shared.schemas import JobRecord, PromptMode
+st.title("📄 Document AI Assistant")
+st.markdown("Upload a document to get a summary, analysis, and a custom LLM prompt.")
 
-from .jobs import create_job, get_job, list_jobs
-from .orchestrator import run_pipeline
+uploaded_file = st.file_uploader("Upload PDF, DOCX, TXT, or Image", type=["pdf", "docx", "txt", "png", "jpg"])
 
-setup_logging()
-logger = get_logger("api_gateway")
-
-app = FastAPI(
-    title="Doc Intel API Gateway",
-    description="Upload documents, get summaries and prompts.",
-    version="0.1.0",
+mode = st.radio(
+    "What do you want to do?",
+    ["Summarize it", "Analyze risks", "Create an action plan", "Generate a quiz"],
+    horizontal=True,
 )
 
+if st.button("🚀 Process Document", type="primary"):
+    if not uploaded_file:
+        st.error("Please upload a file first.")
+    else:
+        with st.spinner("Processing document... This may take a few seconds."):
+            try:
+                files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
+                response = httpx.post(
+                    "http://localhost:8010/simple_process",
+                    files=files,
+                    params={"mode": mode},
+                    timeout=600.0,
+                )
 
-# Max upload size — 25 MB
-MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+                if response.status_code == 200:
+                    data = response.json()
+                    st.success(f"✅ Processed successfully! ({data['text_length']} characters extracted)")
+                    st.divider()
 
+                    col1, col2 = st.columns(2)
 
-@app.get("/health")
-def health() -> dict:
-    return {"status": "ok", "service": "api_gateway"}
+                    with col1:
+                        st.subheader("📋 Summary & Analysis")
+                        summary = data["summary"]
+                        st.info(summary.get("summary", ""))
+                        st.write("**Analysis:**")
+                        st.write(summary.get("analysis", ""))
+                        facts = summary.get("key_facts", [])
+                        if facts:
+                            st.write("**Key Facts:**")
+                            for f in facts:
+                                st.markdown(f"- **{f.get('label', '')}:** {f.get('value', '')}")
 
+                    with col2:
+                        st.subheader("✨ Copy-Paste Prompt")
+                        prompt_data = data["prompt"]
+                        st.write("Copy this into ChatGPT, Claude, or Gemini:")
+                        st.code(prompt_data.get("prompt", ""), language="markdown")
+                        followups = prompt_data.get("followups", [])
+                        if followups:
+                            st.write("**Try asking:**")
+                            for f in followups:
+                                st.markdown(f"- {f}")
 
-@app.post("/upload", response_model=JobRecord)
-async def upload(
-    file: UploadFile = File(...),
-    mode: PromptMode = PromptMode.SUMMARY,
-) -> JobRecord:
-    """Accept a file, enqueue it for processing, return the job record.
-
-    The pipeline runs as an independent asyncio task. This endpoint
-    returns in milliseconds so the client isn't blocked by the
-    (potentially slow) downstream pipeline.
-    """
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="Missing filename")
-
-    contents = await file.read()
-    if not contents:
-        raise HTTPException(status_code=400, detail="Empty file")
-
-    if len(contents) > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
-        )
-
-    content_type = file.content_type or "application/octet-stream"
-    logger.info("upload: %s (%d bytes, %s)", file.filename, len(contents), content_type)
-
-    record = create_job(filename=file.filename, content_type=content_type)
-
-    # Fire-and-forget background task.
-    # create_task schedules it on the event loop independently of this request.
-    asyncio.create_task(
-        run_pipeline(
-            job_id=record.job_id,
-            file_bytes=contents,
-            filename=file.filename,
-            content_type=content_type,
-            mode=mode,
-        )
-    )
-
-    return record
-
-
-@app.get("/status/{job_id}", response_model=JobRecord)
-def status(job_id: str) -> JobRecord:
-    """Return the current state of a job."""
-    rec = get_job(job_id)
-    if rec is None:
-        raise HTTPException(status_code=404, detail="Job not found")
-    return rec
-
-
-@app.get("/result/{job_id}")
-def result(job_id: str) -> dict:
-    """Return the full result — OCR, entities, summary, prompt."""
-    rec = get_job(job_id)
-    if rec is None:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    return {
-        "job_id": rec.job_id,
-        "status": rec.status.value,
-        "error": rec.error,
-        "ocr": rec.ocr.model_dump() if rec.ocr else None,
-        "entities": rec.entities.model_dump() if rec.entities else None,
-        "summary": rec.summary.model_dump() if rec.summary else None,
-        "prompt": rec.prompt.model_dump() if rec.prompt else None,
-    }
-
-
-@app.get("/jobs", response_model=list[JobRecord])
-def jobs(limit: int = 20) -> list[JobRecord]:
-    """List recent jobs."""
-    return list_jobs(limit=limit)
+                else:
+                    st.error(f"Error {response.status_code}: {response.text}")
+            except Exception as e:
+                st.error(f"Connection failed: {e}")

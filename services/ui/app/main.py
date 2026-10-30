@@ -1,10 +1,18 @@
 """Document AI — Professional Interface."""
+import os
 import sys
+import time
 from pathlib import Path
 import httpx
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
+API_URL = os.getenv("API_URL", "http://localhost:8010")
+USE_MOCK = os.getenv("USE_MOCK", "true").lower() == "true"
 
 # -----------------------------------------------------------------------------
 # Page Config
@@ -54,6 +62,19 @@ st.markdown("""
         font-size: 1rem;
         color: #64748b;
         margin-bottom: 2.5rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .demo-badge {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
     }
     
     /* Section headings */
@@ -103,17 +124,6 @@ st.markdown("""
         border: 1px solid #e2e8f0;
     }
     
-    /* Info box */
-    .stAlert {
-        border-radius: 8px;
-    }
-    
-    /* Code block */
-    .stCode {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-    }
-    
     /* Result cards */
     .result-card {
         background: white;
@@ -121,15 +131,6 @@ st.markdown("""
         border-radius: 12px;
         padding: 1.5rem;
         margin-bottom: 1rem;
-    }
-    
-    .result-card h3 {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #0f172a;
-        margin: 0 0 1rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid #f1f5f9;
     }
     
     .result-card p {
@@ -157,29 +158,11 @@ st.markdown("""
         font-size: 0.875rem;
     }
     
-    .prompt-box {
-        background: #0f172a;
-        color: #e2e8f0;
-        border-radius: 8px;
-        padding: 1.25rem;
-        font-family: 'SF Mono', Monaco, monospace;
-        font-size: 0.85rem;
-        line-height: 1.6;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        margin: 0.5rem 0;
-    }
-    
     .followup-item {
         padding: 0.5rem 0;
         color: #334155;
         font-size: 0.875rem;
         border-bottom: 1px solid #f1f5f9;
-    }
-    
-    /* Remove Streamlit container padding */
-    .element-container {
-        margin-bottom: 0.5rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -188,8 +171,10 @@ st.markdown("""
 # Header
 # -----------------------------------------------------------------------------
 st.markdown('<div class="main-title">Document AI</div>', unsafe_allow_html=True)
+
+badge_html = '<span class="demo-badge">DEMO MODE</span>' if USE_MOCK else ''
 st.markdown(
-    '<div class="main-subtitle">Upload any document and get a structured summary, analysis, and a ready-to-use prompt for any LLM.</div>',
+    f'<div class="main-subtitle">Upload any document and get a structured summary, analysis, and a ready-to-use prompt for any LLM. {badge_html}</div>',
     unsafe_allow_html=True,
 )
 
@@ -250,69 +235,95 @@ with col_output:
             with result_placeholder.container():
                 with st.spinner("Processing document..."):
                     try:
-                        files = {
-                            "file": (
-                                uploaded_file.name,
-                                uploaded_file.getvalue(),
-                                uploaded_file.type,
-                            )
-                        }
-                        response = httpx.post(
-                            "http://localhost:8010/simple_process",
-                            files=files,
-                            params={"mode": mode_map[mode]},
-                            timeout=600.0,
-                        )
-                        
-                        if response.status_code != 200:
-                            result_placeholder.error(f"Error {response.status_code}: {response.text[:200]}")
+                        if USE_MOCK:
+                            # --- MOCK MODE ---
+                            time.sleep(2)  # Simulate processing delay
+                            file_name = uploaded_file.name
+                            
+                            data = {
+                                "text_length": 3812,
+                                "summary": {
+                                    "summary": f"This document ({file_name}) contains educational content covering key concepts, definitions, and practical examples. It is structured for learning and reference purposes.",
+                                    "analysis": "The material is well-organized with clear sections. It covers fundamental topics that are important for understanding the subject. Several concepts build on each other logically.",
+                                    "key_facts": [
+                                        {"label": "Document Type", "value": "Educational / Reference"},
+                                        {"label": "Total Pages", "value": "5"},
+                                        {"label": "Complexity Level", "value": "Intermediate"},
+                                        {"label": "Key Topics", "value": "Fundamentals, Definitions, Applications"}
+                                    ]
+                                },
+                                "prompt": {
+                                    "prompt": f"Context: I am analyzing the document '{file_name}'.\n\nPlease provide a comprehensive summary of this document focusing on:\n1. The main objective of the document\n2. 3-5 key concepts explained\n3. Any action items or important takeaways\n\nFormat as: Executive Summary, Key Concepts, and Next Steps.",
+                                    "followups": [
+                                        "Can you explain the most complex concept in simpler terms?",
+                                        "What are the most important 3 facts I should memorize?",
+                                        "Create a 5-question quiz based on this material."
+                                    ]
+                                }
+                            }
                         else:
+                            # --- REAL API MODE ---
+                            files = {
+                                "file": (
+                                    uploaded_file.name,
+                                    uploaded_file.getvalue(),
+                                    uploaded_file.type,
+                                )
+                            }
+                            response = httpx.post(
+                                f"{API_URL}/simple_process",
+                                files=files,
+                                params={"mode": mode_map[mode]},
+                                timeout=600.0,
+                            )
+                            response.raise_for_status()
                             data = response.json()
-                            
-                            st.success(f"Processed successfully — {data['text_length']} characters extracted")
-                            st.divider()
-                            
-                            # SUMMARY
-                            summary = data["summary"]
-                            st.markdown("### Summary")
-                            st.markdown(f'<div class="result-card"><p>{summary.get("summary", "")}</p></div>', unsafe_allow_html=True)
-                            
-                            # ANALYSIS
-                            analysis = summary.get("analysis", "")
-                            if analysis:
-                                st.markdown("### Analysis")
-                                st.markdown(f'<div class="result-card"><p>{analysis}</p></div>', unsafe_allow_html=True)
-                            
-                            # KEY FACTS
-                            facts = summary.get("key_facts", [])
-                            if facts:
-                                st.markdown("### Key Facts")
-                                fact_html = '<div class="result-card">'
-                                for f in facts:
-                                    fact_html += f'<div class="fact-row"><div class="fact-label">{f.get("label", "")}</div><div class="fact-value">{f.get("value", "")}</div></div>'
-                                fact_html += '</div>'
-                                st.markdown(fact_html, unsafe_allow_html=True)
-                            
-                            # PROMPT
-                            prompt_data = data["prompt"]
-                            prompt_text = prompt_data.get("prompt", "")
-                            if prompt_text:
-                                st.markdown("### Copy-Paste Prompt")
-                                st.caption("Click the copy icon in the top right of the box below.")
-                                st.code(prompt_text, language="markdown")
-                            
-                            # FOLLOWUPS
-                            followups = prompt_data.get("followups", [])
-                            if followups:
-                                st.markdown("### Follow-Up Questions")
-                                follow_html = '<div class="result-card">'
-                                for f in followups:
-                                    follow_html += f'<div class="followup-item">{f}</div>'
-                                follow_html += '</div>'
-                                st.markdown(follow_html, unsafe_allow_html=True)
+                        
+                        # --- RENDER RESULTS ---
+                        st.success(f"Processed successfully — {data['text_length']} characters extracted")
+                        st.divider()
+                        
+                        # SUMMARY
+                        summary = data["summary"]
+                        st.markdown("### Summary")
+                        st.markdown(f'<div class="result-card"><p>{summary.get("summary", "")}</p></div>', unsafe_allow_html=True)
+                        
+                        # ANALYSIS
+                        analysis = summary.get("analysis", "")
+                        if analysis:
+                            st.markdown("### Analysis")
+                            st.markdown(f'<div class="result-card"><p>{analysis}</p></div>', unsafe_allow_html=True)
+                        
+                        # KEY FACTS
+                        facts = summary.get("key_facts", [])
+                        if facts:
+                            st.markdown("### Key Facts")
+                            fact_html = '<div class="result-card">'
+                            for f in facts:
+                                fact_html += f'<div class="fact-row"><div class="fact-label">{f.get("label", "")}</div><div class="fact-value">{f.get("value", "")}</div></div>'
+                            fact_html += '</div>'
+                            st.markdown(fact_html, unsafe_allow_html=True)
+                        
+                        # PROMPT
+                        prompt_data = data["prompt"]
+                        prompt_text = prompt_data.get("prompt", "")
+                        if prompt_text:
+                            st.markdown("### Copy-Paste Prompt")
+                            st.caption("Click the copy icon in the top right of the box below.")
+                            st.code(prompt_text, language="markdown")
+                        
+                        # FOLLOWUPS
+                        followups = prompt_data.get("followups", [])
+                        if followups:
+                            st.markdown("### Follow-Up Questions")
+                            follow_html = '<div class="result-card">'
+                            for f in followups:
+                                follow_html += f'<div class="followup-item">{f}</div>'
+                            follow_html += '</div>'
+                            st.markdown(follow_html, unsafe_allow_html=True)
                     
                     except Exception as e:
-                        result_placeholder.error(f"Connection failed: {e}")
+                        result_placeholder.error(f"Processing failed: {e}")
     else:
         with result_placeholder.container():
             st.markdown(

@@ -1,124 +1,132 @@
+<div align="center">
+
 # 📄 Document AI
 
 **Turn any document into structured insights and ready-to-use LLM prompts.**
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit)](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit)](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.40-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+
+**[🚀 Try the Live Demo](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)** · **[📖 Quick Start](#-quick-start)** · **[🐛 Report a Bug](https://github.com/AKASHRAUT108/doc-intel-agent/issues)**
+
+</div>
 
 ---
 
-## 🚀 Try It Live
+## 📸 Screenshot
 
-I built this because I was tired of uploading 20-page PDFs into ChatGPT just to get a generic, half-baked answer. 
-
-**Document AI** acts as the missing layer between your documents and LLMs. Upload a file, and it instantly extracts the content, summarizes it, pulls out key facts, and generates a **custom prompt** that you can copy-paste into ChatGPT, Claude, or Gemini to get the *perfect* answer.
-
-👉 **[Test the Live Demo Here](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)**
-
-> **Note:** The live demo runs in **Demo Mode** so it works 24/7 without burning through API quotas. The real Gemini API pipeline is fully functional and included in the source code.
+<div align="center">
+  <img src="docs/ui-screenshot.png" alt="Document AI Interface" width="900"/>
+</div>
 
 ---
 
-## 📸 The Interface
+## 🎯 The Problem
 
-![Interface](docs/ui-screenshot.png)
+You upload a 20-page PDF to ChatGPT. You ask *"Summarize this."* You get a generic answer that misses half the details, or worse — the LLM runs out of context window and forgets the document entirely.
 
-*The UI is custom-built with Streamlit and CSS to look like a modern SaaS product, not a typical data science notebook.*
-
----
-
-## ✨ What It Actually Does
-
-1. **Reads Anything:** PDFs, Word docs (`.docx`), Excel sheets (`.xlsx`), text files, or images.
-2. **Analyzes:** Uses Google Gemini 2.5 Flash to understand the context.
-3. **Synthesizes:** Generates a 2-sentence summary, a deeper analysis, and a list of key facts.
-4. **Writes Prompts:** Creates a specialized prompt based on what you want to do:
-   - 📋 **Summarize:** Get a quick recap.
-   - 🔍 **Analyze:** Find gaps and risks.
-   - ✅ **Action Plan:** Turn the document into a checklist.
-   - 🧠 **Quiz:** Test your understanding of the material.
+**Document AI fixes this.** It's a preprocessing layer that turns any document into the *perfect* LLM prompt for your specific goal.
 
 ---
 
-## 🛠 The Architecture (Under the Hood)
+1. **📥 Reads Anything** — PDFs, Word docs, Excel sheets, images (PNG/JPG)
+2. **👁️ Extracts Text** — Smart routing: `pypdf` for digital PDFs (5s), `EasyOCR` for scanned docs
+3. **🧠 Understands** — Google Gemini 2.5 Flash analyzes the content
+4. **✍️ Generates** — Creates a 2-sentence summary, deep analysis, key facts, and a **specialized prompt**
 
-This isn't just a single Python script. It's a microservices architecture designed to be scalable and resilient.
+### 4 Prompt Modes
 
-```text
-┌─────────────────┐        ┌──────────────────┐        ┌───────────────┐
-│   Streamlit UI  │───────▶│  FastAPI Gateway │───────▶│   Gemini LLM  │
-│   (port 8501)   │        │    (port 8010)   │        │   (2.5 Flash) │
-└─────────────────┘        └──────────────────┘        └───────────────┘
-                                    │
-                                    ▼
-                           ┌──────────────────┐
-                           │   Document       │
-                           │   Extractor      │
-                           │  (pypdf + OCR)   │
-                           └──────────────────┘
+| Mode | What It Does | Use Case |
+|---|---|---|
+| 📋 **Summarize** | Quick recap | Skim a long report |
+| 🔍 **Analyze** | Find gaps & risks | Due diligence on contracts |
+| ✅ **Action Plan** | Turn docs into checklists | Extract TODOs from notes |
+| 🧠 **Quiz** | Test your understanding | Study from textbooks |
 
-The Gateway: A FastAPI service that handles uploads and orchestrates the pipeline.
+---
 
-The Extractor: Smart routing. If it's a digital PDF, it uses pypdf (takes 2 seconds). If it's a scanned image, it falls back to EasyOCR (takes a few minutes).
+## 🏗️ Architecture
 
-The Brain: A robust wrapper around Google Gemini that handles rate limits, retries, and strict JSON formatting.
+Document AI is built as **7 microservices** with a simple synchronous endpoint for fast, reliable demos:
+┌─────────────────┐ ┌──────────────────┐ ┌───────────────┐
+│ Streamlit UI │───────▶│ FastAPI Gateway │───────▶│ Gemini LLM │
+│ (port 8501) │ │ (port 8010) │ │ (2.5 Flash) │
+└─────────────────┘ └──────────────────┘ └───────────────┘
+│
+▼
+┌──────────────────┐
+│ Document │
+│ Extractor │
+│ (pypdf + OCR) │
+└──────────────────┘
 
-💻 Run It Locally
-Want to run the full pipeline with the real Gemini API?
+### Key Components
 
-1. Clone & Install
-bash
+| Layer | Purpose | Tech |
+|---|---|---|
+| **Frontend** | User interface | Streamlit + Custom CSS |
+| **API Gateway** | Upload handler + orchestrator | FastAPI |
+| **Document Extractor** | Text extraction with smart routing | `pypdf` + `EasyOCR` |
+| **LLM Wrapper** | Gemini client with retries, JSON mode | `google-generativeai` |
+
+---
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python 3.11+**
+- **Google Gemini API Key** ([get one free](https://aistudio.google.com/app/apikey))
+
+### 1. Clone & Install
+
+```bash
 git clone https://github.com/AKASHRAUT108/doc-intel-agent.git
 cd doc-intel-agent
+
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-2. Add Your API Key
-Rename .env.example to .env and add your Google Gemini API key:
 
-env
-GEMINI_API_KEY=your-api-key-here
-GEMINI_MODEL=gemini-2.5-flash
-3. Start the App
-Open two terminals:
+**Paste CHUNK 4 (docker + stats + roadmap):**
 
-Terminal 1 (Backend):
+```markdown
+## 🐳 Docker Deployment
 
-bash
-uvicorn services.api.app.main:app --port 8010
-Terminal 2 (Frontend):
+The entire stack is containerized:
 
-bash
-streamlit run services/ui/app/main.py
-(Note: If you want to test the UI without an API key, change USE_MOCK = True in services/ui/app/main.py).
+```bash
+docker compose up -d
 
-🧪 Tests & Quality
-I built this with production in mind.
 
-60+ unit tests covering extraction, NLP, and API routing.
+**Paste CHUNK 5 (footer):**
 
-Dockerized so you can run the whole stack with docker compose up -d.
+```markdown
+## 🤝 Contributing
 
-Ruff for lightning-fast linting.
+Contributions are welcome! Please open an issue first to discuss changes.
 
-bash
-# Run the test suite
-python -m pytest services/ -v
-🧠 Tech Stack
-Frontend: Streamlit + Custom CSS
+---
 
-Backend: FastAPI, Pydantic
+## 📄 License
 
-AI / LLM: Google Gemini 2.5 Flash (via google-generativeai)
+MIT © [Akash Kumar](https://github.com/AKASHRAUT108)
 
-Document Parsing: pypdf, python-docx, openpyxl, EasyOCR
+---
 
-Deployment: Streamlit Cloud & Docker
+## 🙏 Acknowledgments
 
-🤝 Let's Connect
-If you have questions about how I built the async pipeline, handled the Gemini rate limits, or designed the UI, feel free to reach out!
+- [Google Gemini](https://ai.google.dev) — The LLM layer
+- [EasyOCR](https://github.com/JaidedAI/EasyOCR) and [pypdf](https://github.com/py-pdf/pypdf) — Document extraction
+- [Streamlit](https://streamlit.io) — Rapid UI prototyping
 
-GitHub: @AKASHRAUT108
+---
 
-LinkedIn: https://www.linkedin.com/in/akash-kumar-76274436a/
+<div align="center">
+
+**⭐ If you find this useful, please give it a star!**
+
+Built with ☕ and a lot of debugging by [@AKASHRAUT108](https://github.com/AKASHRAUT108)
+
+</div>

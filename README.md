@@ -72,7 +72,12 @@ Document AI is built as **7 microservices** with a simple synchronous endpoint f
 | **LLM Wrapper** | Gemini client with retries, JSON mode | `google-generativeai` |
 
 ---
-## 🚀 Quick Start
+## 🐳 Docker Deployment
+
+The entire stack is containerized:
+
+```bash
+docker compose up -d
 
 ### Prerequisites
 

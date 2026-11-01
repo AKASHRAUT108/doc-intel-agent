@@ -1,21 +1,21 @@
 <div align="center">
 
-# 📄 Document AI
+# Document AI
 
 **Turn any document into structured insights and ready-to-use LLM prompts.**
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit)](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge)](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.40-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
 
-**[🚀 Try the Live Demo](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)** · **[📖 Quick Start](#-quick-start)** · **[🐛 Report a Bug](https://github.com/AKASHRAUT108/doc-intel-agent/issues)**
+**[Try the Live Demo](https://doc-intel-agent-koyfkc2m9qomngy22a2hde.streamlit.app)** | **[Quick Start](#quick-start)** | **[Report a Bug](https://github.com/AKASHRAUT108/doc-intel-agent/issues)**
 
 </div>
 
 ---
 
-## 📸 Screenshot
+## Screenshot
 
 <div align="center">
   <img src="docs/ui-screenshot.png" alt="Document AI Interface" width="900"/>
@@ -23,7 +23,7 @@
 
 ---
 
-## 🎯 The Problem
+## The Problem
 
 You upload a 20-page PDF to ChatGPT. You ask *"Summarize this."* You get a generic answer that misses half the details, or worse — the LLM runs out of context window and forgets the document entirely.
 
@@ -31,107 +31,153 @@ You upload a 20-page PDF to ChatGPT. You ask *"Summarize this."* You get a gener
 
 ---
 
-1. **📥 Reads Anything** — PDFs, Word docs, Excel sheets, images (PNG/JPG)
-2. **👁️ Extracts Text** — Smart routing: `pypdf` for digital PDFs (5s), `EasyOCR` for scanned docs
-3. **🧠 Understands** — Google Gemini 2.5 Flash analyzes the content
-4. **✍️ Generates** — Creates a 2-sentence summary, deep analysis, key facts, and a **specialized prompt**
+## How It Works
+
+1. **Reads Anything** — PDFs, Word docs, Excel sheets, images (PNG/JPG)
+2. **Extracts Text** — Smart routing: `pypdf` for digital PDFs (5s), `EasyOCR` for scanned docs
+3. **Understands** — Google Gemini 2.5 Flash analyzes the content
+4. **Generates** — Creates a 2-sentence summary, deep analysis, key facts, and a **specialized prompt**
 
 ### 4 Prompt Modes
 
 | Mode | What It Does | Use Case |
 |---|---|---|
-| 📋 **Summarize** | Quick recap | Skim a long report |
-| 🔍 **Analyze** | Find gaps & risks | Due diligence on contracts |
-| ✅ **Action Plan** | Turn docs into checklists | Extract TODOs from notes |
-| 🧠 **Quiz** | Test your understanding | Study from textbooks |
+| **Summarize** | Quick recap | Skim a long report |
+| **Analyze** | Find gaps & risks | Due diligence on contracts |
+| **Action Plan** | Turn docs into checklists | Extract TODOs from notes |
+| **Quiz** | Test your understanding | Study from textbooks |
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 Document AI is built as **7 microservices** with a simple synchronous endpoint for fast, reliable demos:
-┌─────────────────┐ ┌──────────────────┐ ┌───────────────┐
-│ Streamlit UI │───────▶│ FastAPI Gateway │───────▶│ Gemini LLM │
-│ (port 8501) │ │ (port 8010) │ │ (2.5 Flash) │
-└─────────────────┘ └──────────────────┘ └───────────────┘
-│
-▼
-┌──────────────────┐
-│ Document │
-│ Extractor │
-│ (pypdf + OCR) │
-└──────────────────┘
 
-### Key Components
+```text
++-----------------+        +------------------+        +---------------+
+|   Streamlit UI  |------->|  FastAPI Gateway |------->|   Gemini LLM  |
+|   (port 8501)   |        |    (port 8010)   |        |   (2.5 Flash) |
++-----------------+        +------------------+        +---------------+
+                                    |
+                                    v
+                           +------------------+
+                           |   Document       |
+                           |   Extractor      |
+                           |  (pypdf + OCR)   |
+                           +------------------+
 
-| Layer | Purpose | Tech |
-|---|---|---|
-| **Frontend** | User interface | Streamlit + Custom CSS |
-| **API Gateway** | Upload handler + orchestrator | FastAPI |
-| **Document Extractor** | Text extraction with smart routing | `pypdf` + `EasyOCR` |
-| **LLM Wrapper** | Gemini client with retries, JSON mode | `google-generativeai` |
 
----
-## 🐳 Docker Deployment
+                           Key Components
+Layer	Purpose	Tech
+Frontend	User interface	Streamlit + Custom CSS
+API Gateway	Upload handler + orchestrator	FastAPI
+Document Extractor	Text extraction with smart routing	pypdf + EasyOCR
+LLM Wrapper	Gemini client with retries, JSON mode	google-generativeai
+Quick Start
+Prerequisites
+Python 3.11+
 
-The entire stack is containerized:
+Google Gemini API Key (get one free)
 
-```bash
-docker compose up -d
-
-### Prerequisites
-
-- **Python 3.11+**
-- **Google Gemini API Key** ([get one free](https://aistudio.google.com/app/apikey))
-
-### 1. Clone & Install
-
-```bash
+1. Clone & Install
+bash
 git clone https://github.com/AKASHRAUT108/doc-intel-agent.git
 cd doc-intel-agent
 
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+2. Configure
+bash
+cp .env.example .env
+Edit .env and add your Gemini API key:
 
-**Paste CHUNK 4 (docker + stats + roadmap):**
+env
+GEMINI_API_KEY=your-key-here
+GEMINI_MODEL=gemini-2.5-flash
+3. Run Locally
+Terminal 1 — Backend:
 
-```markdown
-## 🐳 Docker Deployment
+bash
+uvicorn services.api.app.main:app --port 8010
+Terminal 2 — Frontend:
 
+bash
+streamlit run services/ui/app/main.py
+Open http://localhost:8501
+
+No API key? Change USE_MOCK = True in services/ui/app/main.py to test the UI without hitting Gemini.
+
+Testing
+bash
+# Run all 60+ tests
+python -m pytest services/ -v
+
+# Run only the API tests
+python -m pytest services/api/tests -v
+
+# Lint the codebase
+python -m ruff check services/
+Test coverage:
+
+Document extraction (PDF, DOCX, XLSX, TXT, images)
+
+NER and entity extraction
+
+API routing and error handling
+
+LLM wrapper (retries, JSON parsing, rate limits)
+
+Docker Deployment
 The entire stack is containerized:
 
-```bash
+bash
 docker compose up -d
+Open http://localhost:8501 — the app runs in 2 containers (API + UI).
 
+Project Stats
+Metric	Count
+Microservices	7
+Unit tests	60+
+Supported formats	5 (PDF, DOCX, XLSX, TXT, images)
+Prompt modes	4
+Lines of code	~5,000
+Tech Stack
+Frontend: Streamlit, custom CSS
 
-**Paste CHUNK 5 (footer):**
+Backend: FastAPI, Pydantic
 
-```markdown
-## 🤝 Contributing
+LLM: Google Gemini 2.5 Flash
 
+Document Parsing: pypdf, python-docx, openpyxl, EasyOCR
+
+Testing: pytest
+
+Linting: ruff
+
+Deployment: Streamlit Cloud + Docker
+
+Roadmap
+☑ Multi-format document support
+☑ Gemini LLM integration
+☑ Professional UI
+☑ Docker deployment
+☑ Live demo on Streamlit Cloud
+□ RAG over a compliance knowledge base
+□ BERT NER (replace regex)
+□ Multi-page PDF chunking for large documents
+□ User authentication
+Contributing
 Contributions are welcome! Please open an issue first to discuss changes.
 
----
+License
+MIT © Akash Kumar
 
-## 📄 License
+Acknowledgments
+Google Gemini — The LLM layer
 
-MIT © [Akash Kumar](https://github.com/AKASHRAUT108)
+EasyOCR and pypdf — Document extraction
 
----
-
-## 🙏 Acknowledgments
-
-- [Google Gemini](https://ai.google.dev) — The LLM layer
-- [EasyOCR](https://github.com/JaidedAI/EasyOCR) and [pypdf](https://github.com/py-pdf/pypdf) — Document extraction
-- [Streamlit](https://streamlit.io) — Rapid UI prototyping
-
----
+Streamlit — Rapid UI prototyping
 
 <div align="center">
-
-**⭐ If you find this useful, please give it a star!**
-
-Built with ☕ and a lot of debugging by [@AKASHRAUT108](https://github.com/AKASHRAUT108)
-
-</div>
